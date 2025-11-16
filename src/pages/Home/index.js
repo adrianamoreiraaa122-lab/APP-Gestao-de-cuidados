@@ -1,22 +1,32 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity} from "react-native";
+import { useState, useContext } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from "@react-navigation/native";
+import { AuthContext } from "../../contexts/AuthContext";
 
-export default function Home(){
+export default function Home() {
     const [search, setSearch] = useState("");
     const navigation = useNavigation();
+    const { logout } = useContext(AuthContext);
 
-    return(
+    return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <FontAwesome5 name="heartbeat" size={30} color="#41A4F4" />
                 <Text style={styles.textHeader}>Health Senior</Text>
-                <View style={styles.notificationIcon}>
-                    <Ionicons name="notifications" size={28} color="#41A4F4"/>
+
+                <View style={styles.rightIcons}>
+                    <View style={styles.notificationIcon}>
+                        <Ionicons name="notifications" size={24} color="#41A4F4" />
+                    </View>
+
+                    <TouchableOpacity style={styles.logoutIcon} onPress={logout}>
+                        <Ionicons name="log-out-outline" size={22} color="#fff" />
+                    </TouchableOpacity>
                 </View>
             </View>
+
             <View style={styles.searchArea}>
                 <FontAwesome5 name="search" size={18} color="#41A4F4" />
                 <TextInput
@@ -25,8 +35,9 @@ export default function Home(){
                     value={search}
                     onChangeText={setSearch}
                     placeholderTextColor="#41A4F4"
-                />  
+                />
             </View>
+
             <View style={styles.cardHome}>
                 <Text style={styles.titleCard}>Cuide de sua saúde. {'\n'}Todas suas necessidades estão aqui</Text>
                 <Text style={styles.paragraphCard}>Desde lembretes de consultas e exames, até medicamentos e seus horários</Text>
@@ -34,68 +45,70 @@ export default function Home(){
                     <Text style={styles.examsTextBtn}>Exames</Text>
                 </TouchableOpacity>
             </View>
+
             <Text style={styles.rememberTitle}>Próximos Compromissos</Text>
+
             <View style={styles.rememberArea}>
                 <View style={styles.rememberCard}>
                     <View style={styles.rememberData}>
-                        <Text style={styles.rememberDay}>
-                            25
-                        </Text>
+                        <Text style={styles.rememberDay}>25</Text>
                         <View style={styles.rememberDescription}>
-                            <Text style={styles.rememberTime}>
-                                08:00
-                            </Text>
-                            <Text style={styles.rememberSpecialty}>
-                                Cardiologista
-                            </Text>
-                            <Text style={styles.rememberDoctorName}>
-                                Dr. Flávio Augusto
-                            </Text>
+                            <Text style={styles.rememberTime}>08:00</Text>
+                            <Text style={styles.rememberSpecialty}>Cardiologista</Text>
+                            <Text style={styles.rememberDoctorName}>Dr. Flávio Augusto</Text>
                         </View>
                     </View>
                 </View>
+
                 <View style={styles.rememberCard}>
                     <View style={styles.rememberData}>
-                        <Text style={styles.rememberDay}>
-                            28
-                        </Text>
+                        <Text style={styles.rememberDay}>28</Text>
                         <View style={styles.rememberDescription}>
-                            <Text style={styles.rememberTime}>
-                                07:30
-                            </Text>
-                            <Text style={styles.rememberSpecialty}>
-                                Ortopedista
-                            </Text>
-                            <Text style={styles.rememberDoctorName}>
-                                Dr. Cláudio Neves
-                            </Text>
+                            <Text style={styles.rememberTime}>07:30</Text>
+                            <Text style={styles.rememberSpecialty}>Ortopedista</Text>
+                            <Text style={styles.rememberDoctorName}>Dr. Cláudio Neves</Text>
                         </View>
-                    </View>         
-                </View>                
+                    </View>
+                </View>
             </View>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
-    container:{
+    container: {
         flex: 1,
         paddingTop: 90,
         paddingLeft: 28,
         paddingRight: 28,
         backgroundColor: "#FFF"
     },
-    header:{
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 16,
     },
-    textHeader:{
+    textHeader: {
         fontSize: 26,
-        color: "#41A4F4"
-        
-    }, 
-    searchArea:{
+        color: "#41A4F4",
+        flex: 1
+    },
+    rightIcons: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10
+    },
+    notificationIcon: {
+        backgroundColor: '#F0F3F7',
+        borderRadius: 50,
+        padding: 6,
+    },
+    logoutIcon: {
+        backgroundColor: "#FF4D4D",
+        borderRadius: 50,
+        padding: 8
+    },
+    searchArea: {
         marginTop: 50,
         flexDirection: 'row',
         alignItems: 'center',
@@ -112,18 +125,12 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 3,
     },
-    search:{
+    search: {
         flex: 1,
-        textDecorationColor: "#41A4F4",
         fontSize: 20,
+        color: "#41A4F4"
     },
-    notificationIcon:{
-        backgroundColor: '#F0F3F7',
-        borderRadius: 50,
-        padding: 6,
-        marginLeft: 80,
-    },
-    cardHome:{
+    cardHome: {
         marginTop: 36,
         backgroundColor: "#47A7F6",
         padding: 20,
@@ -135,37 +142,37 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 3,
     },
-    titleCard:{
+    titleCard: {
         color: "#FFFFFF",
         fontSize: 16,
         fontWeight: "600"
     },
-    paragraphCard:{
+    paragraphCard: {
         color: "#FFFFFF",
         fontSize: 14,
-    }, 
-    examsBtn:{
+    },
+    examsBtn: {
         backgroundColor: "#75b6f6",
         borderRadius: 8,
         height: 34,
         alignItems: 'center',
         justifyContent: 'center'
     },
-    examsTextBtn:{
+    examsTextBtn: {
         color: "#FFFFFF",
         fontWeight: 'bold',
         fontSize: 22
-    }, 
-    rememberArea:{
+    },
+    rememberArea: {
         marginTop: 18,
     },
-    rememberTitle:{
+    rememberTitle: {
         marginTop: 36,
         fontSize: 20,
         color: "#41A4F4",
         marginBottom: 12
     },
-    rememberCard:{
+    rememberCard: {
         flexDirection: 'row',
         marginBottom: 20,
         alignItems: 'center',
@@ -180,35 +187,35 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 3,
     },
-    rememberData:{
+    rememberData: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 16
     },
     rememberDay: {
-    backgroundColor: "#E6F7F2",
-    color: "#2DC59F",
-    fontWeight: "700",
-    fontSize: 18,
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    textAlign: "center",
-    lineHeight: 50, 
+        backgroundColor: "#E6F7F2",
+        color: "#2DC59F",
+        fontWeight: "700",
+        fontSize: 18,
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        textAlign: "center",
+        lineHeight: 50,
     },
-    rememberDescription:{
+    rememberDescription: {
         gap: 4
     },
-    rememberTime:{
+    rememberTime: {
         color: "#8C8C8C",
         fontSize: 12,
     },
-    rememberSpecialty:{
+    rememberSpecialty: {
         color: "#1D1D1D",
         fontSize: 16,
         fontWeight: "600",
     },
-    rememberDoctorName:{
+    rememberDoctorName: {
         color: "#8C8C8C",
         fontSize: 12,
     }
