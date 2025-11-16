@@ -1,12 +1,20 @@
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
+import { useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
+
 import AuthRoutes from "./auth.routes";
+import AppTabs from "./app.routes";
 
-function Routes(){
-    const signed = false;
+export default function Routes(){
+    const { signed, loading } = useContext(AuthContext);
 
-    return(
-        signed ? <View></View> : <AuthRoutes/>
-    )
+    if (loading) {
+        return (
+            <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
+                <ActivityIndicator size={40} color="#000" />
+            </View>
+        );
+    }
+
+    return signed ? <AppTabs /> : <AuthRoutes />;
 }
-
-export default Routes;
