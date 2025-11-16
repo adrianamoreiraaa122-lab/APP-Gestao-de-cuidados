@@ -1,362 +1,400 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    Modal,
+    TextInput,
+    Alert,
+    ScrollView,
+    Platform
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { db } from "../../services/firebaseConnection";
+import {
+    collection,
+    addDoc,
+    getDocs,
+    deleteDoc,
+    doc,
+    query,
+    orderBy
+} from "firebase/firestore";
 
 export default function Medicines() {
-  const [reminders, setReminders] = useState([
-    { id: 1, hour: "08:00", dosage: "2 comprimidos", medicine: "Paracetamol", gram: "500mg" },
-    { id: 2, hour: "12:00", dosage: "1 cápsula", medicine: "Amoxicilina", gram: "875mg" },
-    { id: 3, hour: "18:30", dosage: "1 comprimido", medicine: "Losartana", gram: "50mg" },
-    { id: 4, hour: "22:00", dosage: "1 comprimido", medicine: "Melatonina", gram: "3mg" },
-  ]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
 
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
+    const [name, setName] = useState("");
+    const [quantity, setQuantity] = useState("");
+    const [dosage, setDosage] = useState("");
+    const [time, setTime] = useState("");
+    const [selectedMed, setSelectedMed] = useState(null);
 
-  const [newMedicine, setNewMedicine] = useState("");
-  const [newDosage, setNewDosage] = useState("");
-  const [newHour, setNewHour] = useState("");
-  const [newGram, setNewGram] = useState("");
+    const [medicines, setMedicines] = useState([]);
 
-  const openEditModal = (item) => {
-    setSelectedItem(item);
-    setNewMedicine(item.medicine);
-    setNewDosage(item.dosage);
-    setNewHour(item.hour);
-    setNewGram(item.gram);
-    setEditModalVisible(true);
-  };
+    useEffect(() => {
+        fetchMedicines();
+    }, []);
 
-  const saveChanges = () => {
-    if (newMedicine && newDosage && newHour && newGram) {
-      const updated = reminders.map((item) =>
-        item.id === selectedItem.id
-          ? { ...item, medicine: newMedicine, dosage: newDosage, hour: newHour, gram: newGram }
-          : item
-      );
-      setReminders(updated);
-      setEditModalVisible(false);
-    } else {
-      alert("Preencha todos os campos!");
-    }
-  };
+    async function fetchMedicines() {
+        try {
+            const q = query(collection(db, "remedios"), orderBy("time"));
+            const snapshot = await getDocs(q);
 
-  const confirmDelete = () => setConfirmModalVisible(true);
+            const list = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
-  const deleteReminder = () => {
-    setReminders(reminders.filter((item) => item.id !== selectedItem.id));
-    setConfirmModalVisible(false);
-    setEditModalVisible(false);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.rememberTitle}>Próximos Medicamentos</Text>
-
-      <View style={styles.rememberArea}>
-        {reminders.map((item) => (
-          <TouchableOpacity key={item.id} onPress={() => openEditModal(item)} activeOpacity={0.8}>
-            <View style={styles.rememberCard}>
-              <View style={styles.rememberData}>
-                <Text style={styles.rememberHour}>{item.hour}</Text>
-                <View style={styles.rememberDescription}>
-                  <Text style={styles.rememberDosage}>{item.dosage}</Text>
-                  <Text style={styles.rememberMedicine}>{item.medicine}</Text>
-                  <Text style={styles.rememberGram}>{item.gram}</Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Botão flutuante para adicionar novo */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() =>
-          openEditModal({ id: null, hour: "", dosage: "", medicine: "", gram: "" })
+            setMedicines(list);
+        } catch (err) {
+            console.log("Erro ao buscar remédios:", err);
         }
-      >
-        <FontAwesome5 name="plus" size={20} color="#FFF" />
-      </TouchableOpacity>
+    }
 
-      {/* Modal de edição / adição */}
-      <Modal visible={editModalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.modalOverlay}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>
-                {selectedItem?.id ? "Editar Medicamento" : "Adicionar Medicamento"}
-              </Text>
+    async function handleAddMedicine() {
+        if (!name || !quantity || !dosage || !time) {
+            Alert.alert("Atenção", "Preencha todos os campos!");
+            return;
+        }
 
-              <TextInput
-                placeholder="Nome do medicamento"
-                placeholderTextColor="#666"
-                value={newMedicine}
-                onChangeText={setNewMedicine}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Dosagem (ex: 2 comprimidos)"
-                placeholderTextColor="#666"
-                value={newDosage}
-                onChangeText={setNewDosage}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Horário (ex: 08:00)"
-                placeholderTextColor="#666"
-                value={newHour}
-                onChangeText={setNewHour}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Concentração (ex: 500mg)"
-                placeholderTextColor="#666"
-                value={newGram}
-                onChangeText={setNewGram}
-                style={styles.input}
-              />
+        try {
+            await addDoc(collection(db, "remedios"), {
+                name,
+                quantity,
+                dosage,
+                time
+            });
 
-              <View style={styles.modalButtons}>
-                {selectedItem?.id && (
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={confirmDelete}
-                  >
-                    <Text style={styles.deleteText}>Excluir</Text>
-                  </TouchableOpacity>
-                )}
+            setModalVisible(false);
+            setName("");
+            setQuantity("");
+            setDosage("");
+            setTime("");
+            fetchMedicines();
+        } catch (err) {
+            console.log("Erro ao salvar remédio:", err);
+            Alert.alert("Erro", "Não foi possível salvar o remédio.");
+        }
+    }
 
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setEditModalVisible(false)}
-                >
-                  <Text style={styles.cancelText}>Cancelar</Text>
-                </TouchableOpacity>
+    async function handleDeleteMedicine() {
+        try {
+            await deleteDoc(doc(db, "remedios", selectedMed?.id));
+            setConfirmDeleteVisible(false);
+            setDetailModalVisible(false);
+            fetchMedicines();
+        } catch (err) {
+            console.log("Erro ao excluir:", err);
+            Alert.alert("Erro", "Não foi possível excluir o remédio.");
+        }
+    }
 
-                <TouchableOpacity style={styles.saveButton} onPress={saveChanges}>
-                  <Text style={styles.saveText}>Salvar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Lembretes de Remédios</Text>
 
-      {/* Modal de confirmação de exclusão */}
-      <Modal visible={confirmModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.confirmContainer}>
-            <FontAwesome5 name="exclamation-triangle" size={30} color="#F35B5B" />
-            <Text style={styles.confirmTitle}>Excluir medicamento?</Text>
-            <Text style={styles.confirmText}>Essa ação não poderá ser desfeita.</Text>
+            <ScrollView style={styles.listArea}>
+                {medicines.map(med => (
+                    <TouchableOpacity
+                        key={med.id}
+                        style={styles.card}
+                        onPress={() => {
+                            setSelectedMed(med);
+                            setDetailModalVisible(true);
+                        }}
+                    >
+                        <View style={styles.cardBox}>
+                            <Text style={styles.cardTime}>{med.time}</Text>
+                            <View>
+                                <Text style={styles.cardName}>{med.name}</Text>
+                                <Text style={styles.cardDosage}>
+                                    {med.quantity} — {med.dosage}
+                                </Text>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
 
-            <View style={styles.confirmButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setConfirmModalVisible(false)}
-              >
-                <Text style={styles.cancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={deleteReminder}>
-                <Text style={styles.deleteText}>Excluir</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setModalVisible(true)}
+            >
+                <FontAwesome5 name="plus" size={20} color="#FFF" />
+            </TouchableOpacity>
+
+            {/* Modal Novo Remédio */}
+            <Modal visible={modalVisible} animationType="slide" transparent>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Novo Remédio</Text>
+
+                        <TextInput
+                            placeholder="Nome do Remédio (Ex: Dipirona)"
+                            placeholderTextColor="#6C63FF"
+                            style={styles.input}
+                            value={name}
+                            onChangeText={setName}
+                        />
+
+                        <TextInput
+                            placeholder="Quantidade (Ex: 1 comprimido)"
+                            placeholderTextColor="#6C63FF"
+                            style={styles.input}
+                            value={quantity}
+                            onChangeText={setQuantity}
+                        />
+
+                        <TextInput
+                            placeholder="Dose (Ex: 500mg)"
+                            placeholderTextColor="#6C63FF"
+                            style={styles.input}
+                            value={dosage}
+                            onChangeText={setDosage}
+                        />
+
+                        <TextInput
+                            placeholder="Horário (HH:MM)"
+                            placeholderTextColor="#6C63FF"
+                            style={styles.input}
+                            value={time}
+                            onChangeText={setTime}
+                        />
+
+                        <TouchableOpacity style={styles.saveButton} onPress={handleAddMedicine}>
+                            <Text style={styles.saveText}>Salvar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <Text style={styles.cancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal Detalhes */}
+            <Modal visible={detailModalVisible} animationType="fade" transparent>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Detalhes do Remédio</Text>
+
+                        <Text style={styles.detailText}>💊 {selectedMed?.name}</Text>
+                        <Text style={styles.detailText}>📦 {selectedMed?.quantity}</Text>
+                        <Text style={styles.detailText}>🧪 {selectedMed?.dosage}</Text>
+                        <Text style={styles.detailText}>⏰ {selectedMed?.time}</Text>
+
+                        <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => setConfirmDeleteVisible(true)}
+                        >
+                            <Text style={styles.deleteText}>Excluir</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+                            <Text style={styles.cancelText}>Fechar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal Confirmação */}
+            <Modal visible={confirmDeleteVisible} animationType="fade" transparent>
+                <View style={styles.modalContainer}>
+                    <View style={styles.confirmContent}>
+                        <Text style={styles.modalTitle}>Confirmar exclusão</Text>
+                        <Text style={styles.confirmMessage}>Excluir o remédio:</Text>
+                        <Text style={styles.confirmName}>{selectedMed?.name}</Text>
+
+                        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteMedicine}>
+                            <Text style={styles.deleteText}>Excluir</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setConfirmDeleteVisible(false)}>
+                            <Text style={styles.cancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
-      </Modal>
-    </View>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 40,
-    paddingLeft: 28,
-    paddingRight: 28,
-    backgroundColor: "#FFF",
-  },
-  rememberArea: {
-    marginTop: 18,
-    marginBottom: 80,
-  },
-  rememberTitle: {
-    marginTop: 36,
-    fontSize: 20,
-    color: "#41A4F4",
-    marginBottom: 12,
-  },
-  rememberCard: {
-    flexDirection: "row",
-    marginBottom: 20,
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  rememberData: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  rememberHour: {
-    backgroundColor: "#E6F7F2",
-    color: "#2DC59F",
-    fontWeight: "700",
-    fontSize: 18,
-    width: 70,
-    height: 50,
-    borderRadius: 12,
-    textAlign: "center",
-    lineHeight: 50,
-  },
-  rememberDescription: {
-    gap: 4,
-  },
-  rememberDosage: {
-    color: "#8C8C8C",
-    fontSize: 12,
-  },
-  rememberMedicine: {
-    color: "#1D1D1D",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  rememberGram: {
-    color: "#8C8C8C",
-    fontSize: 12,
-  },
-  addButton: {
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#41A4F4",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 6,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-  },
-  modalContainer: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 24,
-    width: "85%",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#F6F6F6",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    color: "#000",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  cancelButton: {
-    backgroundColor: "#ccc",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  cancelText: {
-    color: "#333",
-    fontWeight: "500",
-  },
-  saveButton: {
-    backgroundColor: "#41A4F4",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  saveText: {
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  deleteButton: {
-    backgroundColor: "#F35B5B",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  deleteText: {
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  confirmContainer: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 24,
-    width: "80%",
-    alignItems: "center",
-  },
-  confirmTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginVertical: 10,
-  },
-  confirmText: {
-    color: "#555",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  confirmButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
+    container: {
+        flex: 1,
+        paddingTop: 40,
+        paddingHorizontal: 28,
+        backgroundColor: "#FFF"
+    },
+
+    title: {
+        marginTop: 36,
+        fontSize: 20,
+        color: "#41A4F4",
+        marginBottom: 12,
+        fontWeight: "600"
+    },
+
+    listArea: {
+        marginTop: 18,
+        marginBottom: 80
+    },
+
+    card: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        borderWidth: Platform.OS === "ios" ? 0.8 : 0,
+        borderColor: "rgba(0,0,0,0.08)",
+        paddingVertical: 16,
+        paddingHorizontal: 18,
+        marginBottom: 18,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+        elevation: 4
+    },
+
+    cardBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16
+    },
+
+    cardTime: {
+        backgroundColor: "#E6F7F2",
+        color: "#2DC59F",
+        fontWeight: "700",
+        fontSize: 16,
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        textAlign: "center",
+        lineHeight: 50
+    },
+
+    cardName: {
+        color: "#1D1D1D",
+        fontSize: 16,
+        fontWeight: "600"
+    },
+
+    cardDosage: {
+        color: "#8C8C8C",
+        fontSize: 12
+    },
+
+    addButton: {
+        position: "absolute",
+        bottom: 30,
+        right: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "#41A4F4",
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 6
+    },
+
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.5)"
+    },
+
+    modalContent: {
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        marginHorizontal: 20,
+        padding: 20
+    },
+
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 12,
+        color: "#41A4F4",
+        textAlign: "center"
+    },
+
+    input: {
+        borderWidth: 1,
+        borderColor: "#DDE3EE",
+        borderRadius: 10,
+        height: 45,
+        paddingHorizontal: 10,
+        marginBottom: 12
+    },
+
+    saveButton: {
+        backgroundColor: "#41A4F4",
+        borderRadius: 10,
+        height: 45,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 10
+    },
+
+    saveText: {
+        color: "#FFF",
+        fontWeight: "700",
+        fontSize: 16
+    },
+
+    cancelText: {
+        color: "#41A4F4",
+        fontSize: 16,
+        textAlign: "center"
+    },
+
+    detailText: {
+        fontSize: 15,
+        marginBottom: 6,
+        color: "#1D1D1D"
+    },
+
+    deleteButton: {
+        backgroundColor: "#FF4D4D",
+        paddingVertical: 12,
+        borderRadius: 10,
+        marginTop: 14
+    },
+
+    deleteText: {
+        color: "#FFF",
+        fontWeight: "700",
+        textAlign: "center",
+        fontSize: 15
+    },
+
+    confirmContent: {
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        marginHorizontal: 20,
+        padding: 24,
+        alignItems: "center"
+    },
+
+    confirmMessage: {
+        fontSize: 15,
+        color: "#1D1D1D",
+        textAlign: "center",
+        marginBottom: 8
+    },
+
+    confirmName: {
+        color: "#FF4D4D",
+        fontSize: 17,
+        fontWeight: "700",
+        marginBottom: 16
+    }
 });

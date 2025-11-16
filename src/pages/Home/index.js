@@ -1,14 +1,43 @@
-import { useState, useContext } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { FontAwesome5 } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from "@react-navigation/native";
+import { useContext, useEffect, useState } from "react";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
+
+// FIREBASE
+import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { db } from "../../services/firebaseConnection";
 
 export default function Home() {
     const [search, setSearch] = useState("");
+    const [nextAppointments, setNextAppointments] = useState([]);
     const navigation = useNavigation();
     const { logout } = useContext(AuthContext);
+
+    useEffect(() => {
+        loadNextAppointments();
+    }, []);
+
+    async function loadNextAppointments() {
+        try {
+            const q = query(
+                collection(db, "consultas"),
+                orderBy("datetime"),
+                limit(2)
+            );
+
+            const querySnapshot = await getDocs(q);
+            const list = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            setNextAppointments(list);
+        } catch (error) {
+            console.log("Erro ao carregar compromissos:", error);
+        }
+    }
 
     return (
         <View style={styles.container}>
@@ -49,27 +78,31 @@ export default function Home() {
             <Text style={styles.rememberTitle}>Próximos Compromissos</Text>
 
             <View style={styles.rememberArea}>
-                <View style={styles.rememberCard}>
-                    <View style={styles.rememberData}>
-                        <Text style={styles.rememberDay}>25</Text>
-                        <View style={styles.rememberDescription}>
-                            <Text style={styles.rememberTime}>08:00</Text>
-                            <Text style={styles.rememberSpecialty}>Cardiologista</Text>
-                            <Text style={styles.rememberDoctorName}>Dr. Flávio Augusto</Text>
-                        </View>
-                    </View>
-                </View>
 
-                <View style={styles.rememberCard}>
-                    <View style={styles.rememberData}>
-                        <Text style={styles.rememberDay}>28</Text>
-                        <View style={styles.rememberDescription}>
-                            <Text style={styles.rememberTime}>07:30</Text>
-                            <Text style={styles.rememberSpecialty}>Ortopedista</Text>
-                            <Text style={styles.rememberDoctorName}>Dr. Cláudio Neves</Text>
+                {nextAppointments.length === 0 && (
+                    <Text style={{ color: "#888" }}>Nenhum compromisso encontrado.</Text>
+                )}
+
+                {nextAppointments.map(appt => (
+                    <TouchableOpacity
+                        key={appt.id}
+                        style={styles.rememberCard}
+                        onPress={() => navigation.navigate("Compromissos")}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.rememberData}>
+                            <Text style={styles.rememberDay}>
+                                {appt?.date ? appt.date.split("/")[0] : "--"}
+                            </Text>
+                            <View style={styles.rememberDescription}>
+                                <Text style={styles.rememberTime}>{appt?.time ?? "--:--"}</Text>
+                                <Text style={styles.rememberSpecialty}>{appt?.specialty ?? "Sem especialidade"}</Text>
+                                <Text style={styles.rememberDoctorName}>{appt?.doctorName ?? "Sem nome"}</Text>
+                            </View>
                         </View>
-                    </View>
-                </View>
+                    </TouchableOpacity>
+                ))}
+
             </View>
         </View>
     );
@@ -119,10 +152,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#F1F4F8",
         height: 48,
         paddingLeft: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
         elevation: 3,
     },
     search: {
@@ -136,10 +165,6 @@ const styles = StyleSheet.create({
         padding: 20,
         gap: 16,
         borderRadius: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
         elevation: 3,
     },
     titleCard: {
@@ -173,19 +198,21 @@ const styles = StyleSheet.create({
         marginBottom: 12
     },
     rememberCard: {
-        flexDirection: 'row',
-        marginBottom: 20,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 18,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
+    flexDirection: 'row',
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
     },
     rememberData: {
         flexDirection: 'row',
